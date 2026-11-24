@@ -1,4 +1,5 @@
-import { createHash, createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import bcrypt from "bcryptjs";
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { SignJWT, jwtVerify, type JWTPayload } from "jose";
 import { config } from "../config.js";
 
@@ -8,24 +9,12 @@ export type AccessClaims = JWTPayload & { roles: string[]; tokenType: "access" }
 
 export function hashToken(token: string) { return createHash("sha256").update(token).digest("hex"); }
 
-export function hashOtp(code: string) { return createHmac("sha256", config.OTP_HASH_SECRET).update(code).digest("hex"); }
-
-export function generateOtp() { return String(cryptoRandomInt(100000, 999999)); }
-
-function cryptoRandomInt(min: number, max: number) { return min + (randomBytes(4).readUInt32BE(0) % (max - min + 1)); }
-
 export function hashPassword(password: string) {
-  const salt = randomBytes(16).toString("hex");
-  const derived = scryptSync(password, salt, 64).toString("hex");
-  return `scrypt$${salt}$${derived}`;
+  return bcrypt.hashSync(password, 12);
 }
 
 export function verifyPassword(password: string, stored: string) {
-  const [, salt, expected] = stored.split("$");
-  if (!salt || !expected) return false;
-  const actual = scryptSync(password, salt, 64);
-  const expectedBuffer = Buffer.from(expected, "hex");
-  return actual.length === expectedBuffer.length && timingSafeEqual(actual, expectedBuffer);
+  try { return bcrypt.compareSync(password, stored); } catch { return false; }
 }
 
 export async function createAccessToken(userId: string, roles: string[]) {

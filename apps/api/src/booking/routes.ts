@@ -4,7 +4,8 @@ import { requireAuth, requireCsrf, asyncHandler } from "../auth/middleware.js";
 import { bookingService } from "./service.js";
 
 const router = Router();
-const discoverySchema = z.object({ destinationSlug: z.string().min(1), packageId: z.string().uuid(), from: z.string(), to: z.string(), tourists12Plus: z.coerce.number().int(), languageIds: z.string().transform((value) => value.split(",").filter(Boolean)).pipe(z.array(z.string().uuid()).min(1).max(3)) });
+const languageIdsSchema = z.preprocess((value) => typeof value === "string" ? value.split(",").map((item) => item.trim()).filter(Boolean) : value, z.array(z.string().uuid()).min(1).max(3));
+export const discoverySchema = z.object({ destinationSlug: z.string().min(1), packageId: z.string().uuid(), from: z.string(), to: z.string(), tourists12Plus: z.coerce.number().int(), languageIds: languageIdsSchema });
 const bookingSchema = discoverySchema.extend({ guideId: z.string().uuid(), holdId: z.string().uuid(), holdToken: z.string().min(20) });
 
 router.get("/destinations", asyncHandler(async (_request, response) => { response.json(await bookingService.listDestinations()); }));

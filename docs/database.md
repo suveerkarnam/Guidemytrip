@@ -35,14 +35,28 @@ The Phase 5 migration adds ordered booking language preferences and binds holds 
 
 ## Migration and seed
 
+The configured hosted database is Supabase PostgreSQL:
+
+```env
+DATABASE_HOST=db.larcksbftzeyufponbaa.supabase.co
+DATABASE_PORT=5432
+DATABASE_NAME=postgres
+DATABASE_USER=postgres
+DATABASE_PASSWORD= # enter locally; never commit it
+DATABASE_URL=postgresql://postgres:REPLACE_WITH_SUPABASE_DB_PASSWORD@db.larcksbftzeyufponbaa.supabase.co:5432/postgres?schema=public&sslmode=require
+```
+
+`DATABASE_URL` is the variable Prisma uses. Replace the password placeholder locally and URL-encode reserved characters such as `@`, `#`, `$`, and `!`. The repository intentionally does not contain a real password.
+
 ```bash
 cp .env.example .env
-docker compose up -d postgres redis
 npm install
 npm --workspace @guidemytrip/api run prisma:generate
 npm --workspace @guidemytrip/api run prisma:migrate
 npm --workspace @guidemytrip/api run prisma:seed
 ```
+
+Docker Compose remains available as an isolated local PostgreSQL/Redis fallback; it is not required when using Supabase.
 
 `prisma:migrate` runs checked-in migrations without resetting a database. Never use `prisma migrate reset` against a shared or production database without explicit authorization. The first migration is `apps/api/prisma/migrations/20261124120000_initial/migration.sql`.
 

@@ -11,12 +11,12 @@ npm run test
 npm run build
 ```
 
-Vitest covers authentication crypto/OTP behavior, booking pricing and ranking, payment signatures, dashboard ownership/review/availability rules, notification delivery retries, and contact persistence. The current suite contains 18 passing tests.
+Vitest covers bcrypt authentication and password-reset behavior, booking pricing and ranking, payment signatures, dashboard ownership/review/availability rules, notification delivery retries, and contact persistence. The current suite contains 17 passing tests.
 
 ## Security and integrity scenarios
 
 - Refresh-token rotation revokes the previous session and rejects reuse.
-- OTP expiry, attempt limits, resend cooldown, and request throttling are covered.
+- Mobile/email normalization, generic credential errors, bcrypt password verification, reset-token hashing, and session invalidation are covered.
 - Booking holds and payment capture use PostgreSQL/advisory locking in the critical path.
 - Payment signature and webhook HMAC behavior is covered by payment adapter tests.
 - Tourist ownership and guide availability conflict rules are covered by dashboard tests.

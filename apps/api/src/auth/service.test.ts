@@ -1,42 +1,43 @@
 import { describe, expect, it, vi } from "vitest";
 import { AuthService } from "./service";
-import { hashOtp } from "./crypto";
-import { mockSmsProvider } from "./providers";
+import { hashPassword } from "./crypto";
+import { mockEmailProvider } from "./email";
 
-function makeDatabase(otp: { id: string; createdAt: Date; expiresAt: Date; attempts: number; codeHash: string } | null) {
-  const user = { id: "user-1", email: null, phone: "+919876543210", displayName: "Demo Traveller", roles: [{ role: { code: "TOURIST" as const } }] };
+const user = { id: "user-1", email: "traveller@example.com", phone: "+919876543210", displayName: "Demo Traveller", isActive: true, deletedAt: null, passwordHash: hashPassword("StrongPassword123"), roles: [{ role: { code: "TOURIST" as const } }] };
+function makeDatabase() {
   const db = {
-    otpVerification: { findFirst: vi.fn().mockResolvedValue(otp), create: vi.fn(), update: vi.fn().mockResolvedValue(otp) },
-    role: { findUniqueOrThrow: vi.fn().mockResolvedValue({ id: "role-1", code: "TOURIST" }) },
-    user: { findUnique: vi.fn().mockResolvedValue(user), update: vi.fn(), create: vi.fn().mockResolvedValue(user) },
-    userRole: { upsert: vi.fn() },
-    session: { create: vi.fn() },
+    user: { findFirst: vi.fn().mockResolvedValue(user), findUnique: vi.fn().mockResolvedValue(user), create: vi.fn().mockResolvedValue(user), update: vi.fn() },
+    role: { findUniqueOrThrow: vi.fn() }, userRole: { upsert: vi.fn() }, session: { create: vi.fn(), updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+    passwordResetToken: { updateMany: vi.fn(), create: vi.fn(), findUnique: vi.fn() }, userAuthProvider: { findUnique: vi.fn(), create: vi.fn() },
     $transaction: vi.fn(async (callback: (transaction: typeof db) => unknown) => callback(db)),
   };
   return db;
 }
 
-describe("mobile OTP service", () => {
-  it("creates a hashed OTP through the provider without returning the code", async () => {
-    const db = makeDatabase(null);
-    const service = new AuthService(db as never);
-    const result = await service.requestMobileOtp("+91 98765 43210");
-    expect(result).not.toHaveProperty("code");
-    expect(db.otpVerification.create).toHaveBeenCalledOnce();
-    expect(mockSmsProvider.getLastDeliveryForTests()?.code).toMatch(/^\d{6}$/);
-    expect((db.otpVerification.create.mock.calls[0]?.[0] as { data: { codeHash: string } }).data.codeHash).toBe(hashOtp(mockSmsProvider.getLastDeliveryForTests()!.code));
+describe("password authentication service", () => {
+  it("signs up a tourist with a normalized phone and password session", async () => {
+    const db = makeDatabase(); const service = new AuthService(db as never);
+    await service.signup({ displayName: " New Traveller ", phone: "+91 98765 43210", email: "NEW@EXAMPLE.COM", password: "StrongPassword123", confirmPassword: "StrongPassword123" } as never);
+    expect(db.user.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ phone: "+919876543210", email: "new@example.com" }) }));
+    expect(db.session.create).toHaveBeenCalledOnce();
   });
 
-  it("rejects expired OTPs and increments failed attempts", async () => {
-    const db = makeDatabase({ id: "otp-1", createdAt: new Date(), expiresAt: new Date(Date.now() - 1000), attempts: 0, codeHash: hashOtp("123456") });
-    const service = new AuthService(db as never);
-    await expect(service.verifyMobileOtp("+919876543210", "123456")).rejects.toMatchObject({ code: "OTP_EXPIRED" });
+  it("authenticates using either email or mobile identifier", async () => {
+    const db = makeDatabase(); const service = new AuthService(db as never);
+    await service.login("TRAVELLER@EXAMPLE.COM", "StrongPassword123"); await service.login("+91 98765 43210", "StrongPassword123");
+    expect(db.user.findFirst).toHaveBeenCalledTimes(2);
   });
 
-  it("rejects invalid OTPs without exposing the expected value", async () => {
-    const db = makeDatabase({ id: "otp-1", createdAt: new Date(), expiresAt: new Date(Date.now() + 100000), attempts: 0, codeHash: hashOtp("123456") });
-    const service = new AuthService(db as never);
-    await expect(service.verifyMobileOtp("+919876543210", "000000")).rejects.toMatchObject({ code: "INVALID_OTP" });
-    expect(db.otpVerification.update).toHaveBeenCalledOnce();
+  it("creates a reset token without exposing it and invalidates sessions after reset", async () => {
+    const db = makeDatabase(); const service = new AuthService(db as never);
+    await service.requestPasswordReset("TRAVELLER@EXAMPLE.COM");
+    const delivery = mockEmailProvider.getLastDeliveryForTests(); expect(delivery?.resetUrl).toContain("/reset-password?token=");
+    const tokenHash = (db.passwordResetToken.create.mock.calls[0]?.[0] as { data: { tokenHash: string } }).data.tokenHash; expect(tokenHash).not.toContain(delivery?.resetUrl.split("token=")[1]);
+  });
+
+  it("revokes the refresh session during logout", async () => {
+    const db = makeDatabase(); const service = new AuthService(db as never);
+    await service.logout("refresh-token");
+    expect(db.session.updateMany).toHaveBeenCalledWith(expect.objectContaining({ data: { revokedAt: expect.any(Date) } }));
   });
 });

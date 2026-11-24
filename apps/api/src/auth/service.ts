@@ -1,8 +1,10 @@
-import { AuthProviderType, OtpPurpose, PrismaClient, RoleCode } from "@prisma/client";
+import { AuthProviderType, Prisma, PrismaClient, RoleCode } from "@prisma/client";
+import { randomBytes } from "node:crypto";
 import { config } from "../config.js";
 import { prisma as defaultPrisma } from "../db.js";
-import { createAccessToken, createRefreshToken, hashOtp, hashPassword, hashToken, verifyPassword } from "./crypto.js";
-import { smsProvider, type VerifiedGoogleIdentity } from "./providers.js";
+import { emailProvider } from "./email.js";
+import { createAccessToken, createRefreshToken, hashPassword, hashToken, verifyPassword } from "./crypto.js";
+import type { VerifiedGoogleIdentity } from "./providers.js";
 import type { AuthUser } from "./types.js";
 
 export class AuthError extends Error { constructor(public readonly code: string, public readonly status = 400) { super(code); } }
@@ -19,57 +21,35 @@ export function normalizeEmail(email: string) {
   return normalized;
 }
 
+function normalizeIdentifier(identifier: string) {
+  const value = identifier.trim();
+  return value.includes("@") ? { email: normalizeEmail(value), phone: undefined } : { email: undefined, phone: normalizePhone(value) };
+}
+
 export type SessionTokens = { accessToken: string; refreshToken: string; user: AuthUser };
+export type SignupInput = { displayName: string; phone: string; email?: string; password: string };
 
 export class AuthService {
   constructor(private readonly db: PrismaClient = defaultPrisma) {}
 
-  async requestMobileOtp(phoneInput: string) {
-    const phone = normalizePhone(phoneInput);
-    const latest = await this.db.otpVerification.findFirst({ where: { identifier: phone, purpose: OtpPurpose.SIGN_IN }, orderBy: { createdAt: "desc" } });
-    if (latest && Date.now() - latest.createdAt.getTime() < config.OTP_RESEND_COOLDOWN_SECONDS * 1000) throw new AuthError("OTP_RESEND_COOLDOWN", 429);
-    const code = String(Math.floor(100000 + Math.random() * 900000));
-    await smsProvider.sendOtp(phone, code, config.OTP_TTL_SECONDS);
-    await this.db.otpVerification.create({ data: {
-      identifier: phone,
-      purpose: OtpPurpose.SIGN_IN,
-      codeHash: hashOtp(code),
-      expiresAt: new Date(Date.now() + config.OTP_TTL_SECONDS * 1000),
-      user: { connectOrCreate: { where: { phone }, create: { phone, displayName: `Traveller ${phone.slice(-4)}`, roles: { create: { role: { connect: { code: RoleCode.TOURIST } } } } } } },
-    } });
-    return { expiresInSeconds: config.OTP_TTL_SECONDS, resendAfterSeconds: config.OTP_RESEND_COOLDOWN_SECONDS };
+  async signup(input: SignupInput): Promise<SessionTokens> {
+    const displayName = input.displayName.trim();
+    if (!displayName) throw new AuthError("INVALID_DISPLAY_NAME", 422);
+    const phone = normalizePhone(input.phone);
+    const email = input.email?.trim() ? normalizeEmail(input.email) : undefined;
+    validatePassword(input.password);
+    try {
+      const user = await this.db.user.create({ data: { displayName, phone, email, passwordHash: hashPassword(input.password), roles: { create: { role: { connect: { code: RoleCode.TOURIST } } } } }, include: { roles: { include: { role: true } } } });
+      return this.issueSession(toAuthUser(user));
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") throw new AuthError("ACCOUNT_ALREADY_EXISTS", 409);
+      throw error;
+    }
   }
 
-  async verifyMobileOtp(phoneInput: string, code: string): Promise<SessionTokens> {
-    const phone = normalizePhone(phoneInput);
-    if (!/^\d{6}$/.test(code)) throw new AuthError("INVALID_OTP", 422);
-    const otp = await this.db.otpVerification.findFirst({ where: { identifier: phone, purpose: OtpPurpose.SIGN_IN, consumedAt: null }, orderBy: { createdAt: "desc" } });
-    if (!otp || otp.expiresAt.getTime() <= Date.now()) throw new AuthError("OTP_EXPIRED", 401);
-    if (otp.attempts >= config.OTP_MAX_ATTEMPTS) throw new AuthError("OTP_ATTEMPTS_EXCEEDED", 429);
-    if (hashOtp(code) !== otp.codeHash) { await this.db.otpVerification.update({ where: { id: otp.id }, data: { attempts: { increment: 1 } } }); throw new AuthError("INVALID_OTP", 401); }
-    const user = await this.db.$transaction(async (transaction) => {
-      await transaction.otpVerification.update({ where: { id: otp.id }, data: { consumedAt: new Date() } });
-      const role = await transaction.role.findUniqueOrThrow({ where: { code: RoleCode.TOURIST } });
-      const existing = await transaction.user.findUnique({ where: { phone }, include: { roles: { include: { role: true } } } });
-      if (existing) { await transaction.user.update({ where: { id: existing.id }, data: { phoneVerifiedAt: new Date() } }); await transaction.userRole.upsert({ where: { userId_roleId: { userId: existing.id, roleId: role.id } }, update: {}, create: { userId: existing.id, roleId: role.id } }); return transaction.user.findUniqueOrThrow({ where: { id: existing.id }, include: { roles: { include: { role: true } } } }); }
-      return transaction.user.create({ data: { phone, phoneVerifiedAt: new Date(), displayName: `Traveller ${phone.slice(-4)}`, roles: { create: { roleId: role.id } }, }, include: { roles: { include: { role: true } } } });
-    });
-    return this.issueSession(toAuthUser(user));
-  }
-
-  async signupWithPassword(emailInput: string, password: string, displayName: string): Promise<SessionTokens> {
-    const email = normalizeEmail(emailInput);
-    validatePassword(password);
-    if (!displayName.trim()) throw new AuthError("INVALID_DISPLAY_NAME", 422);
-    const existing = await this.db.user.findUnique({ where: { email } });
-    if (existing) throw new AuthError("ACCOUNT_ALREADY_EXISTS", 409);
-    const user = await this.db.user.create({ data: { email, displayName: displayName.trim(), passwordHash: hashPassword(password), roles: { create: { role: { connect: { code: RoleCode.TOURIST } } } } }, include: { roles: { include: { role: true } } } });
-    return this.issueSession(toAuthUser(user));
-  }
-
-  async loginWithPassword(emailInput: string, password: string): Promise<SessionTokens> {
-    const email = normalizeEmail(emailInput);
-    const user = await this.db.user.findUnique({ where: { email }, include: { roles: { include: { role: true } } } });
+  async login(identifierInput: string, password: string): Promise<SessionTokens> {
+    const identifier = normalizeIdentifier(identifierInput);
+    const user = await this.db.user.findFirst({ where: identifier.email ? { email: identifier.email } : { phone: identifier.phone }, include: { roles: { include: { role: true } } } });
     if (!user?.passwordHash || !verifyPassword(password, user.passwordHash) || !user.isActive || user.deletedAt) throw new AuthError("INVALID_CREDENTIALS", 401);
     return this.issueSession(toAuthUser(user));
   }
@@ -90,6 +70,35 @@ export class AuthService {
     return this.issueSession(toAuthUser(user));
   }
 
+  async requestPasswordReset(emailInput: string) {
+    const email = normalizeEmail(emailInput);
+    const user = await this.db.user.findUnique({ where: { email } });
+    if (user?.isActive && !user.deletedAt) {
+      const rawToken = randomBytes(32).toString("base64url");
+      await this.db.passwordResetToken.updateMany({ where: { userId: user.id, usedAt: null }, data: { usedAt: new Date() } });
+      await this.db.passwordResetToken.create({ data: { userId: user.id, tokenHash: hashToken(rawToken), expiresAt: new Date(Date.now() + config.PASSWORD_RESET_TOKEN_EXPIRY_MINUTES * 60_000) } });
+      try {
+        await emailProvider.sendPasswordReset({ email, resetUrl: `${config.FRONTEND_URL}/reset-password?token=${encodeURIComponent(rawToken)}`, expiresInMinutes: config.PASSWORD_RESET_TOKEN_EXPIRY_MINUTES });
+      } catch (error) {
+        console.error("Password reset email delivery failed", { error: error instanceof Error ? error.message : "unknown" });
+      }
+    }
+    return { message: "If an account exists with the provided email address, you will receive instructions to reset your password." };
+  }
+
+  async resetPassword(rawToken: string, password: string) {
+    if (!rawToken || rawToken.length < 20) throw new AuthError("RESET_TOKEN_INVALID", 400);
+    validatePassword(password);
+    const token = await this.db.passwordResetToken.findUnique({ where: { tokenHash: hashToken(rawToken) } });
+    if (!token || token.usedAt || token.expiresAt <= new Date()) throw new AuthError("RESET_TOKEN_INVALID", 400);
+    await this.db.$transaction(async (transaction) => {
+      const consumed = await transaction.passwordResetToken.updateMany({ where: { id: token.id, usedAt: null, expiresAt: { gt: new Date() } }, data: { usedAt: new Date() } });
+      if (consumed.count !== 1) throw new AuthError("RESET_TOKEN_INVALID", 400);
+      await transaction.user.update({ where: { id: token.userId }, data: { passwordHash: hashPassword(password) } });
+      await transaction.session.updateMany({ where: { userId: token.userId, revokedAt: null }, data: { revokedAt: new Date() } });
+    });
+  }
+
   async refresh(refreshToken: string): Promise<SessionTokens> {
     const session = await this.db.session.findUnique({ where: { tokenHash: hashToken(refreshToken) }, include: { user: { include: { roles: { include: { role: true } } } } } });
     if (!session || session.revokedAt || session.expiresAt <= new Date() || !session.user.isActive || session.user.deletedAt) throw new AuthError("SESSION_EXPIRED", 401);
@@ -99,14 +108,12 @@ export class AuthService {
   }
 
   async logout(refreshToken?: string) { if (refreshToken) await this.db.session.updateMany({ where: { tokenHash: hashToken(refreshToken), revokedAt: null }, data: { revokedAt: new Date() } }); }
-
   async findUser(id: string) { const user = await this.db.user.findUnique({ where: { id }, include: { roles: { include: { role: true } } } }); return user && user.isActive && !user.deletedAt ? toAuthUser(user) : null; }
-
   private async issueSession(user: AuthUser): Promise<SessionTokens> { const refreshToken = createRefreshToken(); await this.db.session.create({ data: { userId: user.id, tokenHash: hashToken(refreshToken), expiresAt: new Date(Date.now() + config.REFRESH_TOKEN_TTL_DAYS * 86400000) } }); return { accessToken: await createAccessToken(user.id, user.roles), refreshToken, user }; }
 }
 
 function toAuthUser(user: { id: string; email: string | null; phone: string | null; displayName: string; roles: Array<{ role: { code: RoleCode } }> }): AuthUser { return { id: user.id, email: user.email, phone: user.phone, displayName: user.displayName, roles: user.roles.map((item) => item.role.code) }; }
 
-function validatePassword(password: string) { if (password.length < 12 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/\d/.test(password)) throw new AuthError("WEAK_PASSWORD", 422); }
+export function validatePassword(password: string) { if (password.length < 12 || password.length > 128 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/\d/.test(password)) throw new AuthError("WEAK_PASSWORD", 422); }
 
 export const authService = new AuthService();

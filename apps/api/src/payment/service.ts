@@ -13,7 +13,10 @@ export class PaymentService {
   constructor(private readonly db: PrismaClient = defaultPrisma) {}
 
   async createOrder(input: PaymentInput) {
-    const existing = await this.db.payment.findUnique({ where: { idempotencyKey: input.idempotencyKey }, include: { booking: true } });
+    // Keep mock and Razorpay orders separate. This prevents a pending order created
+    // in local mock mode from being reused after switching the API to Razorpay test mode.
+    const providerIdempotencyKey = `${input.idempotencyKey}:${config.PAYMENT_PROVIDER}`;
+    const existing = await this.db.payment.findUnique({ where: { idempotencyKey: providerIdempotencyKey }, include: { booking: true } });
     if (existing) {
       if (existing.booking.touristId !== input.userId || existing.bookingId !== input.bookingId) throw new AuthError("PAYMENT_IDEMPOTENCY_CONFLICT", 409);
       return this.serializeOrder(existing);
@@ -27,7 +30,7 @@ export class PaymentService {
     const recalculated = new Prisma.Decimal(booking.package.basePrice).mul(booking.tourists12Plus).mul(new Prisma.Decimal(1).plus(new Prisma.Decimal(booking.package.gstRate).div(100)));
     if (recalculated.toFixed(2) !== booking.totalAmount.toFixed(2)) throw new AuthError("BOOKING_AMOUNT_CHANGED", 409);
     const providerOrder = await paymentGateway.createOrder({ amount: recalculated.mul(100).toNumber(), currency: booking.currency, receipt: booking.reference, notes: { bookingId: booking.id, reference: booking.reference } });
-    const payment = await this.db.payment.create({ data: { bookingId: booking.id, provider: "razorpay", providerOrderId: providerOrder.id, amount: booking.totalAmount, currency: booking.currency, status: PaymentStatus.PENDING, idempotencyKey: input.idempotencyKey } });
+    const payment = await this.db.payment.create({ data: { bookingId: booking.id, provider: config.PAYMENT_PROVIDER, providerOrderId: providerOrder.id, amount: booking.totalAmount, currency: booking.currency, status: PaymentStatus.PENDING, idempotencyKey: providerIdempotencyKey } });
     return this.serializeOrder(payment, booking.reference);
   }
 
@@ -110,7 +113,7 @@ export class PaymentService {
   }
 
   private async updateRefundFromWebhook(providerPaymentId: string, event: string) { const payment = await this.db.payment.findFirst({ where: { providerPaymentId } }); if (!payment) return; await this.db.refund.updateMany({ where: { paymentId: payment.id, status: RefundStatus.PENDING }, data: { status: event === "refund.processed" ? RefundStatus.PROCESSED : RefundStatus.FAILED } }); }
-  private serializeOrder(payment: { id: string; providerOrderId: string | null; amount: Prisma.Decimal; currency: string; status: PaymentStatus }, reference?: string) { if (!payment.providerOrderId) throw new AuthError("PAYMENT_ORDER_UNAVAILABLE", 502); return { paymentId: payment.id, orderId: payment.providerOrderId, amount: payment.amount.mul(100).toNumber(), currency: payment.currency, keyId: config.RAZORPAY_KEY_ID ?? "test_key", reference }; }
+  private serializeOrder(payment: { id: string; providerOrderId: string | null; amount: Prisma.Decimal; currency: string; status: PaymentStatus }, reference?: string) { if (!payment.providerOrderId) throw new AuthError("PAYMENT_ORDER_UNAVAILABLE", 502); if (config.PAYMENT_PROVIDER === "razorpay" && payment.providerOrderId.startsWith("order_mock_")) throw new AuthError("PAYMENT_PROVIDER_MISCONFIGURED", 502); return { paymentId: payment.id, orderId: payment.providerOrderId, amount: payment.amount.mul(100).toNumber(), currency: payment.currency, keyId: config.RAZORPAY_KEY_ID ?? "test_key", reference }; }
 }
 
 type WebhookPayload = { event: string; payload?: { payment?: { entity?: { id?: string; order_id?: string; payment_id?: string } }; refund?: { entity?: { id?: string; payment_id?: string; order_id?: string } } } };

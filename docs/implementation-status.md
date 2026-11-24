@@ -5,13 +5,14 @@
 - Phase 1 foundation scaffold created on `feature/initial-implementation`.
 - Phase 2 premium tourism design system and data-driven homepage implemented.
 - Phase 3 PostgreSQL/Prisma schema, initial migration, and development seed implemented.
-- Phase 4 secure authentication implemented for mobile OTP, password-based role accounts, Google identity verification, sessions, cookies, and authorization middleware.
+- Phase 4 password authentication implemented for mobile/email identifiers, bcrypt password hashes, Google identity verification, secure sessions, cookies, password reset, and authorization middleware. OTP is no longer exposed by the application.
 - Phase 5 booking engine implemented with a data-driven wizard, destination/package APIs, guide discovery, ordered language preferences, server-side pricing, expiring holds, and pending-payment booking creation.
 - Phase 6 Razorpay payment lifecycle implemented with backend orders, Checkout integration, signature verification, idempotent webhooks, confirmation, retries, cancellation policy handling, and refund tracking.
 - Phase 7 tourist, guide, and admin dashboards implemented with server-enforced ownership/roles, booking details, cancellation/review workflows, guide availability, admin metrics, guide/package/booking/review/contact operations, and moderation fields.
 - Booking integrity includes PostgreSQL GiST exclusion constraints for confirmed guide date ranges and unreleased holds.
 - Destination, package, guide, testimonial, trust, FAQ, and guide recruitment sections added.
 - Responsive navigation, carousel, route pages, authentication shells, and resilient image fallbacks added.
+- Homepage/navigation refinement completed: authenticated users land on the homepage, navbar state is auth-driven with accessible profile/bookings/logout menus, profile route added, and hero/background contrast and layering improved.
 - npm workspaces for web, API, shared, and config packages.
 - Baseline React/Vite frontend and Express API.
 - `GET /api/v1/health` endpoint.
@@ -20,7 +21,7 @@
 
 ## Pending
 
-- Production email/SMS provider configuration, scheduled travel reminders, observability, and final hardening.
+- Production SMTP provider configuration, scheduled travel reminders, observability, and final hardening.
 
 ## Verification
 
@@ -33,7 +34,7 @@
 - Docker Compose validation was not run because Docker is not installed in the environment.
 - `npm audit` reports 11 dependency findings (3 moderate, 6 high, 2 critical); these are recorded for dependency hardening.
 - Phase 2 frontend verification: `npm run typecheck`, `npm run build`, `npm run lint`, and `npm run test` all pass. Vite reports informational warnings for dependency-level `use client` directives during bundling.
-- Phase 4 verification: full typecheck, build, lint, and test suites pass; seven auth unit tests cover OTP, password hashing, refresh-token opacity, expiry, and invalid attempts.
+- Password-auth verification: Prisma validation/client generation, Supabase migration deploy, typecheck, build, lint, and all 18 workspace tests pass. Tests cover bcrypt hashing, mobile/email login, signup normalization, reset-token hashing, and session invalidation paths.
 - Phase 3 `prisma validate`, Prisma Client generation, API build, API typecheck, and migration diff checks passed.
 - Migration deploy and seed were attempted against localhost PostgreSQL; deploy could not complete and seed rejected the configured demo credentials. Docker is unavailable in this environment, so no database state was changed.
 - Phase 5 verification: Prisma Client generation, typecheck, build, lint, and all workspace tests pass. Live booking smoke tests remain pending until demo data is authorized and seeded.
@@ -44,6 +45,14 @@
 - Phase 8 verification: notification, contact, review, typecheck, lint, test, and build checks pass. Email is intentionally a mock provider until production provider credentials are configured.
 - Phase 9 security, booking-integrity, logging, rate-limit, dependency, and performance audit completed; payment capture locking and sensitive-log redaction fixes applied.
 - Phase 9 verification: Prisma validation, typecheck, lint, 18 tests, production build, offline dependency audit, and diff checks pass. Online npm audit could not reach the registry; Docker and Playwright are unavailable/not installed.
+- Homepage/navigation verification: typecheck, build, lint, tests, and diff checks pass; local `/auth/me` smoke check returns 401 when unauthenticated and the frontend route returns HTTP 200.
+- Profile/bookings/logout hardening: authenticated profile menu contains only My Bookings and Log out; the existing `/account` dashboard remains protected and user-scoped; logout revokes the server session, clears local/query state, replaces history, revalidates on BFCache/visibility restoration, and synchronizes other tabs.
+- Booking CTA integration: removed the homepage search panel and added a Book Guide CTA wired to the existing `/book` multi-step wizard. Booking drafts survive sign-in and are hydrated before persistence can overwrite them.
+- Payment handoff refinement: enlarged and styled the Book Guide CTA; the review step now creates the server-side hold and pending booking in one guarded action before opening Razorpay Checkout, with retry support if payment preparation fails.
+- Razorpay handoff hardening: incomplete restored booking state now shows an actionable error instead of silently returning, and Razorpay script loading has a timeout and explicit checkout error handling.
+- Booking payload validation fix: the booking schemas now normalize `languageIds` from either comma-separated query strings or ordered JSON arrays, covering guide discovery, hold creation, and booking creation consistently.
+- Razorpay provider isolation: payment idempotency keys are now scoped by provider, preventing stale `order_mock_*` records from being reused after switching to Razorpay Test Mode; Razorpay mode rejects mock order IDs defensively.
+- Runtime configuration fix: API environment loading now consistently reads the repository-level `.env`, avoiding an `apps/api/.env` mock-provider override; startup logs the active non-secret payment provider.
 
 ## Decisions
 

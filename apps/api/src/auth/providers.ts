@@ -1,25 +1,6 @@
 import { OAuth2Client } from "google-auth-library";
 import { config } from "../config.js";
 
-export interface SmsProvider { sendOtp(phone: string, code: string, expiresInSeconds: number): Promise<void>; }
-
-export class MockSmsProvider implements SmsProvider {
-  readonly providerName = "mock";
-  private lastDelivery?: { phone: string; code: string; expiresInSeconds: number };
-  async sendOtp(phone: string, code: string, expiresInSeconds: number) { this.lastDelivery = { phone, code, expiresInSeconds }; }
-  getLastDeliveryForTests() { return this.lastDelivery; }
-}
-
-class ConfiguredSmsProvider implements SmsProvider {
-  async sendOtp(phone: string, code: string, expiresInSeconds: number) {
-    void phone; void code; void expiresInSeconds;
-    throw new Error("SMS_PROVIDER_NOT_CONFIGURED");
-  }
-}
-
-export const mockSmsProvider = new MockSmsProvider();
-export const smsProvider: SmsProvider = config.AUTH_OTP_PROVIDER === "mock" ? mockSmsProvider : new ConfiguredSmsProvider();
-
 export type VerifiedGoogleIdentity = { subject: string; email: string; name: string; picture?: string; emailVerified: true };
 
 export async function verifyGoogleIdentity(idToken: string): Promise<VerifiedGoogleIdentity> {

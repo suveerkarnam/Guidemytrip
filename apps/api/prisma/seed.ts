@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { PrismaClient, RoleCode, AuthProviderType, BookingStatus, PaymentStatus, PackageStatus, GuideApprovalStatus, GuideVerificationStatus } from "@prisma/client";
 import destinationsConfig from "../../../config/destinations.json" with { type: "json" };
 

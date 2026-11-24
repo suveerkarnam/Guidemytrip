@@ -9,10 +9,10 @@ All state-changing auth endpoints require the `gt_csrf` cookie and matching `X-C
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
 | GET | `/api/v1/auth/csrf` | Issue a CSRF token cookie |
-| POST | `/api/v1/auth/otp/request` | Validate an E.164 phone and send a rate-limited OTP |
-| POST | `/api/v1/auth/otp/verify` | Consume an OTP and create a tourist session |
-| POST | `/api/v1/auth/password/signup` | Create a tourist account with a scrypt password hash |
-| POST | `/api/v1/auth/password/login` | Login an active account, including guides/admins |
+| POST | `/api/v1/auth/signup` | Create a tourist account with mobile, optional email, and bcrypt password hash |
+| POST | `/api/v1/auth/login` | Login an active account using mobile number or email |
+| POST | `/api/v1/auth/forgot-password` | Request a generic password-reset response and email delivery |
+| POST | `/api/v1/auth/reset-password` | Consume a single-use reset token and update the password |
 | POST | `/api/v1/auth/google` | Verify a Google ID token server-side and sign in/create a tourist |
 | POST | `/api/v1/auth/google/link` | Link a verified Google identity to the authenticated user |
 | POST | `/api/v1/auth/refresh` | Rotate the refresh token and issue a new access cookie |
