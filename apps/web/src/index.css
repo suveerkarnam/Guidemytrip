@@ -24,6 +24,8 @@ body { margin: 0; min-width: 320px; background: #fbfaf5; }
 .field-select { width: 100%; appearance: none; border: 0; background: transparent; color: #183b3d; font-size: .9rem; font-weight: 600; outline: 0; }
 .image-fallback { display: flex; align-items: flex-end; background: linear-gradient(135deg, #2b7770, #dbb66b 75%, #e99d76); color: rgba(255,255,255,.8); padding: 1rem; font-family: 'Playfair Display', serif; font-size: 1.25rem; }
 .auth-page { display: flex; min-height: 100vh; align-items: center; justify-content: center; background: #e8eee8; padding: 6rem 1rem 3rem; }
+.booking-page { min-height: 100vh; background: #f4f5ef; }
+.booking-page button:focus-visible, .booking-page input:focus-visible, .booking-page select:focus-visible { outline: 2px solid #26736e; outline-offset: 2px; }
 .auth-input { display: block; width: 100%; margin-top: .5rem; border: 1px solid rgba(24,59,61,.15); border-radius: .8rem; padding: .85rem 1rem; outline-color: #26736e; }
 @media (max-width: 767px) { .search-panel { grid-template-columns: 1fr; gap: 1rem; } .search-panel > .h-10 { display: none; } .hero { min-height: 650px; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; } }

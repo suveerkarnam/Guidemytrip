@@ -74,13 +74,37 @@ enum CancellationActor {
 enum NotificationChannel {
   EMAIL
   SMS
+  WHATSAPP
   IN_APP
+}
+enum NotificationType {
+  OTP
+  BOOKING_CREATED
+  PAYMENT_CONFIRMED
+  BOOKING_CONFIRMED
+  BOOKING_CANCELLED
+  REFUND
+  UPCOMING_TRAVEL
+  GUIDE_BOOKING
+  TOURIST_BOOKING
+  CONTACT_ACKNOWLEDGEMENT
 }
 enum NotificationStatus {
   PENDING
   SENT
   FAILED
   READ
+}
+enum ReviewModerationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+enum ContactMessageStatus {
+  NEW
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
 }
 
 model User {
@@ -107,6 +131,8 @@ model User {
   contactMessages ContactMessage[]
   auditLogs AuditLog[]
   cancelledBookings BookingCancellation[] @relation("CancelledBy")
+  moderatedReviews Review[] @relation("ReviewModeratedBy")
+  handledContacts ContactMessage[] @relation("ContactHandledBy")
   @@index([isActive, deletedAt])
 }
 
@@ -284,6 +310,7 @@ model TourPackage {
   inclusions PackageInclusion[]
   exclusions PackageExclusion[]
   bookings Booking[]
+  holds BookingHold[]
   @@index([destinationId, status])
   @@index([status, deletedAt])
 }
@@ -381,9 +408,11 @@ model Booking {
 model BookingLanguage {
   bookingId String @db.Uuid
   languageId String @db.Uuid
+  sortOrder Int @default(0)
   booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   language Language @relation(fields: [languageId], references: [id], onDelete: Restrict)
   @@id([bookingId, languageId])
+  @@index([bookingId, sortOrder])
 }
 
 model BookingGuest {
@@ -399,6 +428,7 @@ model BookingGuest {
 model BookingHold {
   id String @id @default(uuid()) @db.Uuid
   bookingId String? @db.Uuid
+  packageId String @db.Uuid
   guideId String @db.Uuid
   startDate DateTime @db.Date
   endDate DateTime @db.Date
@@ -407,6 +437,7 @@ model BookingHold {
   releasedAt DateTime?
   createdAt DateTime @default(now())
   guide GuideProfile @relation(fields: [guideId], references: [id], onDelete: Restrict)
+  package TourPackage @relation(fields: [packageId], references: [id], onDelete: Restrict)
   booking Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
   @@index([guideId, startDate, endDate])
   @@index([expiresAt, releasedAt])
@@ -478,11 +509,15 @@ model Review {
   rating Int
   title String?
   body String
+  moderationStatus ReviewModerationStatus @default(PENDING)
+  moderatedBy String? @db.Uuid
+  moderationReason String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   booking Booking @relation(fields: [bookingId], references: [id], onDelete: Restrict)
   tourist User @relation("TouristReviews", fields: [touristId], references: [id], onDelete: Restrict)
   guide GuideProfile @relation("GuideReviews", fields: [guideId], references: [id], onDelete: Restrict)
+  moderator User? @relation("ReviewModeratedBy", fields: [moderatedBy], references: [id], onDelete: SetNull)
   @@index([guideId, createdAt])
 }
 
@@ -490,9 +525,14 @@ model Notification {
   id String @id @default(uuid()) @db.Uuid
   userId String @db.Uuid
   channel NotificationChannel
+  type NotificationType
   status NotificationStatus @default(PENDING)
   subject String
   body String
+  attemptCount Int @default(0)
+  lastAttemptAt DateTime?
+  errorMessage String?
+  providerMessageId String?
   sentAt DateTime?
   readAt DateTime?
   createdAt DateTime @default(now())
@@ -507,8 +547,13 @@ model ContactMessage {
   email String
   subject String
   message String
+  mobile String?
+  status ContactMessageStatus @default(NEW)
+  adminNotes String?
+  handledBy String? @db.Uuid
   createdAt DateTime @default(now())
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  handler User? @relation("ContactHandledBy", fields: [handledBy], references: [id], onDelete: SetNull)
   @@index([email, createdAt])
 }
 

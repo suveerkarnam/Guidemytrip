@@ -17,10 +17,18 @@ const configSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   GOOGLE_REDIRECT_URI: z.string().url().optional(),
+  PAYMENT_PROVIDER: z.enum(["mock", "razorpay"]).default("mock"),
+  RAZORPAY_KEY_ID: z.string().optional(),
+  RAZORPAY_KEY_SECRET: z.string().optional(),
+  RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
 });
 
 export const config = configSchema.parse(process.env);
 
 if (config.NODE_ENV === "production" && (config.JWT_ACCESS_SECRET.startsWith("development-") || config.OTP_HASH_SECRET.startsWith("development-") || config.AUTH_OTP_PROVIDER === "mock")) {
   throw new Error("Production authentication requires non-default secrets and a real SMS provider");
+}
+
+if (config.NODE_ENV === "production" && (config.PAYMENT_PROVIDER !== "razorpay" || !config.RAZORPAY_KEY_ID || !config.RAZORPAY_KEY_SECRET || !config.RAZORPAY_WEBHOOK_SECRET)) {
+  throw new Error("Production payments require Razorpay credentials and webhook validation configuration");
 }
