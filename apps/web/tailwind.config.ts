@@ -1,0 +1,3 @@
+import type { Config } from "tailwindcss";
+
+export default { content: ["./index.html", "./src/**/*.{ts,tsx}"], theme: { extend: { colors: { teal: { 50: "#edf6f3", 100: "#dcebe6", 700: "#26736e", 800: "#1c5c5a", 900: "#17484a", 950: "#103637" }, ivory: "#fbfaf5", sand: "#eee9da", clay: "#e7b198", gold: "#d8aa55", "gold-light": "#f0cf8a", "gold-dark": "#9c7027", ink: "#183b3d", "ink-muted": "#6d7e7a" }, fontFamily: { display: ["Playfair Display", "Georgia", "serif"], sans: ["DM Sans", "ui-sans-serif", "system-ui"] }, boxShadow: { card: "0 8px 30px rgba(24,59,61,.06)", "card-hover": "0 18px 45px rgba(24,59,61,.13)" } } }, plugins: [] } satisfies Config;

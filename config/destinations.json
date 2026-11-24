@@ -1,0 +1,62 @@
+[
+  {
+    "slug": "hampi",
+    "name": "Hampi",
+    "region": "Karnataka, India",
+    "tagline": "Where stone tells ancient stories",
+    "description": "Wander through a surreal landscape of boulders, temple ruins, and golden-hour horizons in the heart of the Vijayanagara empire.",
+    "image": "https://images.unsplash.com/photo-1600100397608-f010d4d4f9b4?auto=format&fit=crop&w=1800&q=85",
+    "highlights": ["Virupaksha Temple", "Tungabhadra sunsets", "Royal Enclosure"],
+    "accent": "clay"
+  },
+  {
+    "slug": "varanasi",
+    "name": "Varanasi",
+    "region": "Uttar Pradesh, India",
+    "tagline": "A city that moves to its own rhythm",
+    "description": "Follow the river at dawn, share stories in the old lanes, and experience one of the world's oldest living cities with a local.",
+    "image": "https://images.unsplash.com/photo-1561361513-2d000a50f0dc?auto=format&fit=crop&w=1800&q=85",
+    "highlights": ["Ganga Aarti", "Old city lanes", "Sunrise boat ride"],
+    "accent": "sun"
+  },
+  {
+    "slug": "mysuru",
+    "name": "Mysuru",
+    "region": "Karnataka, India",
+    "tagline": "Palaces, perfumed gardens, slow mornings",
+    "description": "Discover royal architecture, fragrant markets, and the gentle pace of India's cultural capital with a guide who knows every corner.",
+    "image": "https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&w=1800&q=85",
+    "highlights": ["Mysore Palace", "Devaraja Market", "Chamundi Hill"],
+    "accent": "green"
+  },
+  {
+    "slug": "jaipur",
+    "name": "Jaipur",
+    "region": "Rajasthan, India",
+    "tagline": "Rose-hued streets and royal craft",
+    "description": "Meet makers, decode palace details, and taste your way through the Pink City beyond the postcard trail.",
+    "image": "https://images.unsplash.com/photo-1477587458883-47145ed94245?auto=format&fit=crop&w=1800&q=85",
+    "highlights": ["Amber Fort", "Block printing", "Hawa Mahal"],
+    "accent": "rose"
+  },
+  {
+    "slug": "agra",
+    "name": "Agra",
+    "region": "Uttar Pradesh, India",
+    "tagline": "A timeless love story in marble",
+    "description": "See the Taj Mahal through the eyes of a local storyteller, then linger for the food, craft, and living history around it.",
+    "image": "https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=1800&q=85",
+    "highlights": ["Taj Mahal", "Agra Fort", "Marble inlay"],
+    "accent": "ivory"
+  },
+  {
+    "slug": "kochi",
+    "name": "Kochi",
+    "region": "Kerala, India",
+    "tagline": "Spice, sea, and a layered shoreline",
+    "description": "Trace Kochi's trading past through art-filled warehouses, backwater sunsets, and kitchens rich with coastal flavour.",
+    "image": "https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=1800&q=85",
+    "highlights": ["Fort Kochi", "Chinese fishing nets", "Backwater cruise"],
+    "accent": "teal"
+  }
+]
