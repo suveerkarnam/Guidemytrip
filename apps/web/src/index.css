@@ -13,11 +13,11 @@ body { margin: 0; min-width: 320px; background: #fbfaf5; }
 .eyebrow { font-size: 0.7rem; font-weight: 700; letter-spacing: .17em; text-transform: uppercase; color: #26736e; }
 .section-title { margin-top: .65rem; font-family: 'Playfair Display', Georgia, serif; font-size: clamp(2.25rem, 4vw, 3.6rem); line-height: 1.05; letter-spacing: -.03em; color: #183b3d; }
 .section-space { padding-block: clamp(5rem, 10vw, 9rem); }
-.hero { position: relative; min-height: 680px; overflow: hidden; background: #123536; }
+.hero { position: relative; min-height: 560px; overflow: hidden; background: #123536; }
 .hero-image { position: absolute; inset: 0; height: 100%; width: 100%; object-fit: cover; opacity: 0; transform: scale(1.04); transition: opacity 1s ease, transform 7s ease; }
 .hero-image-active { opacity: .9; transform: scale(1); }
 .hero-overlay { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(14, 44, 45, .82) 0%, rgba(14, 44, 45, .35) 55%, rgba(14, 44, 45, .16) 100%), linear-gradient(0deg, rgba(14, 44, 45, .75), transparent 55%); }
-.book-guide-cta { min-width: 11rem; border: 1px solid rgba(231, 187, 103, .7); background: linear-gradient(135deg, #26736e, #17484a); box-shadow: 0 10px 24px rgba(18, 53, 54, .25), inset 0 1px 0 rgba(255, 255, 255, .18); letter-spacing: .01em; }
+.book-guide-cta { min-width: 22rem; border: 1px solid rgba(231, 187, 103, .7); background: linear-gradient(135deg, #26736e, #17484a); box-shadow: 0 10px 24px rgba(18, 53, 54, .25), inset 0 1px 0 rgba(255, 255, 255, .18); letter-spacing: .01em; }
 .book-guide-cta:hover { background: linear-gradient(135deg, #31877f, #1d5b5d); box-shadow: 0 14px 30px rgba(18, 53, 54, .3), inset 0 1px 0 rgba(255, 255, 255, .22); }
 .page-hero { position: relative; min-height: 500px; overflow: hidden; background: linear-gradient(120deg, #17484a, #28736d); }
 .page-hero::after { position: absolute; inset: 0; content: ''; background: radial-gradient(circle at 80% 15%, rgba(231, 187, 103, .25), transparent 30%); }
@@ -30,5 +30,5 @@ body { margin: 0; min-width: 320px; background: #fbfaf5; }
 .auth-input { display: block; width: 100%; margin-top: .5rem; border: 1px solid rgba(24,59,61,.22); border-radius: .8rem; background: #fff; color: #183b3d; padding: .85rem 1rem; outline-color: #26736e; }
 .auth-input::placeholder { color: #718482; opacity: 1; }
 .auth-input:focus { border-color: #26736e; box-shadow: 0 0 0 3px rgba(38,115,110,.14); }
-@media (max-width: 767px) { .hero { min-height: 650px; } }
+@media (max-width: 767px) { .hero { min-height: 540px; } .book-guide-cta { min-width: 18rem; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; } }

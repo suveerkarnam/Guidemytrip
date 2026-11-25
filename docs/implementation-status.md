@@ -53,6 +53,10 @@
 - Booking payload validation fix: the booking schemas now normalize `languageIds` from either comma-separated query strings or ordered JSON arrays, covering guide discovery, hold creation, and booking creation consistently.
 - Razorpay provider isolation: payment idempotency keys are now scoped by provider, preventing stale `order_mock_*` records from being reused after switching to Razorpay Test Mode; Razorpay mode rejects mock order IDs defensively.
 - Runtime configuration fix: API environment loading now consistently reads the repository-level `.env`, avoiding an `apps/api/.env` mock-provider override; startup logs the active non-secret payment provider.
+- Hero layout refinement: reduced the homepage hero height, doubled the Book Guide CTA scale, and removed the slide counter and divider line while retaining the destination indicators.
+- Destination asset refinement: added the repository-served Hampi banner at `apps/web/public/images/destinations/hampi.jpg` and updated the shared destination catalog to use it.
+- Destination asset refinement: added the repository-served Mysuru/Mysore banner at `apps/web/public/images/destinations/mysuru.jpg` and updated the shared destination catalog to use it.
+- Destination asset refinement: added the repository-served Varanasi banner at `apps/web/public/images/destinations/varanasi.jpg` and updated the shared destination catalog to use it.
 
 ## Decisions
 
