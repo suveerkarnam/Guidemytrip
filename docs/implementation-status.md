@@ -58,6 +58,9 @@
 - Destination asset refinement: added the repository-served Mysuru/Mysore banner at `apps/web/public/images/destinations/mysuru.jpg` and updated the shared destination catalog to use it.
 - Destination asset refinement: added the repository-served Varanasi banner at `apps/web/public/images/destinations/varanasi.jpg` and updated the shared destination catalog to use it.
 - Dashboard navigation refinement: removed the redundant Sign out button from My Bookings; the site header provides the existing logout control.
+- Admin guide CRUD: added protected create, read, update, and soft-delete guide operations, including profile fields, language/destination assignments, approval controls, audit logging, and an admin dashboard editor.
+- Admin guide form refinement: full name, phone, language, and destination selections are mandatory; numeric guide fields have explanatory help text; profile image URLs were replaced with size/type-validated image upload and preview support.
+- Admin dashboard usability: experience years is explicitly required, the duplicate dashboard sign-out control was removed in favor of the profile menu logout, and guides, packages, bookings, reviews, and contacts now each expose category-specific filters.
 
 ## Decisions
 

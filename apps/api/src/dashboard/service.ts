@@ -3,6 +3,11 @@ import { prisma as defaultPrisma } from "../db.js";
 import { AuthError } from "../auth/service.js";
 
 const bookingInclude = { tourist: { select: { id: true, displayName: true, email: true, phone: true } }, destination: true, package: true, guide: { include: { user: true } }, languagePreferences: { include: { language: true }, orderBy: { sortOrder: "asc" as const } }, payments: { orderBy: { createdAt: "desc" as const } }, refunds: { orderBy: { createdAt: "desc" as const } }, cancellations: { orderBy: { createdAt: "desc" as const } }, review: true };
+const adminGuideInclude = {
+  user: { select: { id: true, displayName: true, email: true, phone: true, profileImageUrl: true, isActive: true, deletedAt: true } },
+  languages: { include: { language: { select: { id: true, code: true, name: true } } } },
+  destinations: { include: { destination: { select: { id: true, slug: true, name: true } } } },
+} as const;
 
 export class DashboardService {
   constructor(private readonly db: PrismaClient = defaultPrisma) {}
@@ -54,18 +59,44 @@ export class DashboardService {
     return { tourists, guides, activeGuides, pendingGuides, totalBookings, upcomingBookings, completedBookings, cancelledBookings, revenue: revenue._sum.amount?.toFixed(2) ?? "0.00", refunds: refunds._sum.amount?.toFixed(2) ?? "0.00" };
   }
 
-  async adminGuides() { return this.db.guideProfile.findMany({ include: { user: true, languages: { include: { language: true } }, destinations: { include: { destination: true } } }, orderBy: { createdAt: "desc" } }); }
+  async adminGuides() { return this.db.guideProfile.findMany({ where: { deletedAt: null }, include: adminGuideInclude, orderBy: { createdAt: "desc" } }); }
 
   async createGuide(input: { email?: string; phone?: string; displayName: string; biography?: string; profileImageUrl?: string; experienceYears: number; capacity: number; basePrice: string; languageIds: string[]; destinationIds: string[] }) {
     const role = await this.db.role.findUniqueOrThrow({ where: { code: RoleCode.GUIDE } });
-    return this.db.user.create({ data: { email: input.email, phone: input.phone, displayName: input.displayName, roles: { create: { roleId: role.id } }, guideProfile: { create: { biography: input.biography, profileImageUrl: input.profileImageUrl, experienceYears: input.experienceYears, capacity: input.capacity, basePrice: input.basePrice, languages: { create: input.languageIds.map((languageId) => ({ languageId })) }, destinations: { create: input.destinationIds.map((destinationId) => ({ destinationId })) } } } }, include: { guideProfile: true } });
+    const guide = await this.db.user.create({ data: { email: input.email || undefined, phone: input.phone || undefined, displayName: input.displayName.trim(), roles: { create: { roleId: role.id } }, guideProfile: { create: { biography: input.biography?.trim() || undefined, profileImageUrl: input.profileImageUrl, experienceYears: input.experienceYears, capacity: input.capacity, basePrice: input.basePrice, languages: { create: input.languageIds.map((languageId) => ({ languageId })) }, destinations: { create: input.destinationIds.map((destinationId) => ({ destinationId })) } } } }, select: { guideProfile: { include: adminGuideInclude } } });
+    return guide.guideProfile;
   }
 
-  async updateGuideStatus(guideId: string, input: { isActive?: boolean; approvalStatus?: GuideApprovalStatus; verificationStatus?: GuideVerificationStatus }) { const guide = await this.db.guideProfile.update({ where: { id: guideId }, data: input }); await this.db.auditLog.create({ data: { action: "GUIDE_STATUS_UPDATED", entityType: "GuideProfile", entityId: guideId, metadata: input } }); return guide; }
+  async updateGuide(adminId: string, guideId: string, input: { email?: string; phone?: string; displayName?: string; biography?: string; profileImageUrl?: string; experienceYears?: number; capacity?: number; basePrice?: string; languageIds?: string[]; destinationIds?: string[]; isActive?: boolean; approvalStatus?: GuideApprovalStatus; verificationStatus?: GuideVerificationStatus }) {
+    const existing = await this.db.guideProfile.findUnique({ where: { id: guideId }, select: { userId: true } });
+    if (!existing) throw new AuthError("GUIDE_NOT_FOUND", 404);
+    await this.db.$transaction(async (tx) => {
+      const { email, phone, displayName, biography, profileImageUrl, experienceYears, capacity, basePrice, languageIds, destinationIds, isActive, approvalStatus, verificationStatus } = input;
+      await tx.user.update({ where: { id: existing.userId }, data: { email, phone, displayName: displayName?.trim(), profileImageUrl } });
+      await tx.guideProfile.update({ where: { id: guideId }, data: { biography: biography?.trim(), profileImageUrl, experienceYears, capacity, basePrice, isActive, approvalStatus, verificationStatus } });
+      if (languageIds) { await tx.guideLanguage.deleteMany({ where: { guideId } }); if (languageIds.length) await tx.guideLanguage.createMany({ data: languageIds.map((languageId) => ({ guideId, languageId })), skipDuplicates: true }); }
+      if (destinationIds) { await tx.guideDestination.deleteMany({ where: { guideId } }); if (destinationIds.length) await tx.guideDestination.createMany({ data: destinationIds.map((destinationId) => ({ guideId, destinationId })), skipDuplicates: true }); }
+      await tx.auditLog.create({ data: { userId: adminId, action: "GUIDE_UPDATED", entityType: "GuideProfile", entityId: guideId, metadata: input } });
+    });
+    return this.db.guideProfile.findUniqueOrThrow({ where: { id: guideId }, include: adminGuideInclude });
+  }
+
+  async deleteGuide(adminId: string, guideId: string) {
+    const existing = await this.db.guideProfile.findUnique({ where: { id: guideId }, select: { userId: true } });
+    if (!existing) throw new AuthError("GUIDE_NOT_FOUND", 404);
+    const deletedAt = new Date();
+    await this.db.$transaction(async (tx) => {
+      await tx.guideProfile.update({ where: { id: guideId }, data: { isActive: false, deletedAt } });
+      await tx.user.update({ where: { id: existing.userId }, data: { isActive: false, deletedAt } });
+      await tx.auditLog.create({ data: { userId: adminId, action: "GUIDE_DELETED", entityType: "GuideProfile", entityId: guideId, metadata: { deletedAt: deletedAt.toISOString() } } });
+    });
+  }
 
   async adminPackages() { return this.db.tourPackage.findMany({ include: { destination: true, cancellationPolicy: true }, orderBy: { updatedAt: "desc" } }); }
 
   async adminDestinations() { return this.db.destination.findMany({ include: { attractions: true }, orderBy: { name: "asc" } }); }
+
+  async adminLanguages() { return this.db.language.findMany({ where: { isActive: true }, select: { id: true, code: true, name: true }, orderBy: { name: "asc" } }); }
 
   async createDestination(input: { slug: string; name: string; region: string; description: string; imageUrl?: string }) { return this.db.destination.create({ data: input }); }
 

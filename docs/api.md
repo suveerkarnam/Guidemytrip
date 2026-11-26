@@ -67,7 +67,10 @@ Dashboard APIs enforce ownership or `ADMIN`/`GUIDE` roles on the backend. Fronte
 | PATCH | `/api/v1/dashboard/guide/profile` | Guide role, own permitted fields |
 | POST | `/api/v1/dashboard/guide/availability` | Guide role, conflict-checked dates |
 | GET | `/api/v1/dashboard/admin/metrics` | Admin role |
-| GET/POST/PATCH | `/api/v1/dashboard/admin/guides` | Admin role, auditable status controls |
+| GET/POST | `/api/v1/dashboard/admin/guides` | Admin role; list active guide profiles or create a guide |
+| PATCH | `/api/v1/dashboard/admin/guides/:id` | Admin role; update guide profile, assignments, or status |
+| DELETE | `/api/v1/dashboard/admin/guides/:id` | Admin role; soft-delete/deactivate a guide while preserving booking history |
+| GET | `/api/v1/dashboard/admin/languages` | Admin role; list language options for guide assignment |
 | GET/POST/PATCH | `/api/v1/dashboard/admin/destinations` | Admin role, database-managed catalog |
 | GET/POST/PATCH | `/api/v1/dashboard/admin/packages` | Admin role |
 | GET | `/api/v1/dashboard/admin/bookings` | Admin role, search/filter support |
