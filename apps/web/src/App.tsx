@@ -22,7 +22,7 @@ function HomePage() {
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
   const hero = destinations.slice(0, 3);
-  useEffect(() => { if (paused) return; const timer = window.setInterval(() => setActive((current) => (current + 1) % hero.length), 6000); return () => window.clearInterval(timer); }, [hero.length, paused]);
+  useEffect(() => { if (paused) return; const timer = window.setInterval(() => setActive((current) => (current + 1) % hero.length), 3000); return () => window.clearInterval(timer); }, [hero.length, paused]);
   const current = hero[active] ?? hero[0]!;
   return <main>
     <section className="hero" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} aria-label="Featured destinations">

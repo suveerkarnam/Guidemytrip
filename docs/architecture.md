@@ -6,6 +6,8 @@ GuideMyTrip uses a modular monolith in an npm workspace. `apps/web` is a React/V
 
 React Router owns navigation, TanStack Query owns server-state caching, React Hook Form and Zod will own form validation, and Tailwind provides utility styling. Pages, layouts, API clients, hooks, and domain components remain separate as features grow.
 
+The homepage and listing routes compose the same destination, package, and guide card components. Keep those UI boundaries in the existing web workspace so navigation, accessibility, and styling stay consistent across routes; a separately deployed frontend is not justified for these presentation changes.
+
 The Phase 2 visual system uses deep teal (`#17484a`) as the trust/heritage anchor, warm ivory (`#fbfaf5`) for breathing room, sand (`#eee9da`) for section contrast, muted gold (`#d8aa55`) for wayfinding and calls to action, and clay (`#e7b198`) for warm editorial accents. Playfair Display carries the destination/story voice while DM Sans keeps navigation and utility copy clear.
 
 ## Backend

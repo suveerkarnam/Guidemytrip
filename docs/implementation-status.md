@@ -2,6 +2,7 @@
 
 ## Completed
 
+- Homepage card and carousel refinement: featured banners rotate every 3 seconds when unpaused; destination cards highlight on hover and link across their full area; package cards link across their full area with an unwrapped action label; guide ratings display one decimal in the homepage/list and booking selection.
 - Phase 1 foundation scaffold created on `feature/initial-implementation`.
 - Phase 2 premium tourism design system and data-driven homepage implemented.
 - Phase 3 PostgreSQL/Prisma schema, initial migration, and development seed implemented.
@@ -25,6 +26,7 @@
 
 ## Verification
 
+- Homepage card and carousel refinement: `npm.cmd run typecheck:web`, `npm.cmd run lint:web`, `npm.cmd run test:web` (4 passing tests), and `npm.cmd run build:web` passed. Server-rendered card tests emit React Router `useLayoutEffect` warnings; Vite emits existing dependency-level `use client` warnings.
 - `npm install` completed and generated `package-lock.json`.
 - `npm run typecheck` passed.
 - `npm run build` passed for shared, web, and API workspaces.
