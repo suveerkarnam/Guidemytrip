@@ -9,7 +9,7 @@ type DashboardError = Error & { code?: string };
 
 export default function DashboardPage({ mode }: { mode: Mode }) {
   const { user, logout } = useAuth();
-  return <main className="dashboard-page min-h-screen bg-ivory pb-20 pt-32"><div className="site-container"><div className="mb-10 flex flex-wrap items-end justify-between gap-5"><div><p className="eyebrow">{mode === "tourist" ? "Your journeys" : mode === "guide" ? "Guide studio" : "Platform operations"}</p><h1 className="mt-2 font-display text-5xl text-ink">{mode === "tourist" ? `Welcome, ${user?.displayName ?? "traveller"}.` : mode === "guide" ? "Your people, your pace." : "A clear view of GuideMyTrip."}</h1></div><Button variant="ghost" onClick={() => void logout()}>Sign out</Button></div>{mode === "tourist" ? <TouristDashboard /> : mode === "guide" ? <GuideDashboard /> : <AdminDashboard />}</div></main>;
+  return <main className="dashboard-page min-h-screen bg-ivory pb-20 pt-32"><div className="site-container"><div className="mb-10 flex flex-wrap items-end justify-between gap-5"><div><p className="eyebrow">{mode === "tourist" ? "Your journeys" : mode === "guide" ? "Guide studio" : "Platform operations"}</p><h1 className="mt-2 font-display text-5xl text-ink">{mode === "tourist" ? `Welcome, ${user?.displayName ?? "traveller"}.` : mode === "guide" ? "Your people, your pace." : "A clear view of GuideMyTrip."}</h1></div>{mode !== "tourist" && <Button variant="ghost" onClick={() => void logout()}>Sign out</Button>}</div>{mode === "tourist" ? <TouristDashboard /> : mode === "guide" ? <GuideDashboard /> : <AdminDashboard />}</div></main>;
 }
 
 function TouristDashboard() {

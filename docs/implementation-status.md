@@ -57,6 +57,7 @@
 - Destination asset refinement: added the repository-served Hampi banner at `apps/web/public/images/destinations/hampi.jpg` and updated the shared destination catalog to use it.
 - Destination asset refinement: added the repository-served Mysuru/Mysore banner at `apps/web/public/images/destinations/mysuru.jpg` and updated the shared destination catalog to use it.
 - Destination asset refinement: added the repository-served Varanasi banner at `apps/web/public/images/destinations/varanasi.jpg` and updated the shared destination catalog to use it.
+- Dashboard navigation refinement: removed the redundant Sign out button from My Bookings; the site header provides the existing logout control.
 
 ## Decisions
 
