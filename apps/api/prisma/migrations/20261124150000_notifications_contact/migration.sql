@@ -1,0 +1,12 @@
+CREATE TYPE "NotificationType" AS ENUM ('OTP', 'BOOKING_CREATED', 'PAYMENT_CONFIRMED', 'BOOKING_CONFIRMED', 'BOOKING_CANCELLED', 'REFUND', 'UPCOMING_TRAVEL', 'GUIDE_BOOKING', 'TOURIST_BOOKING', 'CONTACT_ACKNOWLEDGEMENT');
+
+ALTER TABLE "Notification"
+ADD COLUMN "type" "NotificationType" NOT NULL DEFAULT 'BOOKING_CREATED',
+ADD COLUMN "attemptCount" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN "lastAttemptAt" TIMESTAMP(3),
+ADD COLUMN "errorMessage" TEXT,
+ADD COLUMN "providerMessageId" TEXT;
+
+ALTER TABLE "ContactMessage" ADD COLUMN "mobile" TEXT;
+
+CREATE INDEX "Notification_type_status_createdAt_idx" ON "Notification"("type", "status", "createdAt");

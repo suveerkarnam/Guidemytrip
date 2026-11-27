@@ -1,0 +1,55 @@
+{
+  "name": "guidemytrip",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "GuideMyTrip modular monolith workspace",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n web,api -c blue,green \"npm run dev:web\" \"npm run dev:api\"",
+    "dev:web": "npm --workspace @guidemytrip/web run dev",
+    "dev:api": "npm --workspace @guidemytrip/api run dev",
+    "db:generate": "npm --workspace @guidemytrip/api run prisma:generate",
+    "db:migrate": "npm --workspace @guidemytrip/api run prisma:migrate",
+    "db:seed": "npm --workspace @guidemytrip/api run prisma:seed",
+    "db:validate": "npm --workspace @guidemytrip/api run prisma:validate",
+    "build": "npm run build:shared && npm run build:web && npm run build:api",
+    "build:shared": "npm --workspace @guidemytrip/shared run build",
+    "build:web": "npm --workspace @guidemytrip/web run build",
+    "build:api": "npm --workspace @guidemytrip/api run build",
+    "test": "npm run test:shared && npm run test:web && npm run test:api",
+    "test:shared": "npm --workspace @guidemytrip/shared run test",
+    "test:web": "npm --workspace @guidemytrip/web run test",
+    "test:api": "npm --workspace @guidemytrip/api run test",
+    "lint": "npm run lint:shared && npm run lint:config && npm run lint:web && npm run lint:api",
+    "lint:shared": "npm --workspace @guidemytrip/shared run lint",
+    "lint:config": "npm --workspace @guidemytrip/config run lint",
+    "lint:web": "npm --workspace @guidemytrip/web run lint",
+    "lint:api": "npm --workspace @guidemytrip/api run lint",
+    "typecheck": "npm run typecheck:shared && npm run typecheck:config && npm run typecheck:web && npm run typecheck:api",
+    "typecheck:shared": "npm --workspace @guidemytrip/shared run typecheck",
+    "typecheck:config": "npm --workspace @guidemytrip/config run typecheck",
+    "typecheck:web": "npm --workspace @guidemytrip/web run typecheck",
+    "typecheck:api": "npm --workspace @guidemytrip/api run typecheck",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@types/node": "^22.10.2",
+    "concurrently": "^9.1.2",
+    "eslint": "^9.17.0",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.18.0",
+    "vitest": "^2.1.8"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "razorpay": "^2.9.8"
+  }
+}
