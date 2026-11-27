@@ -26,6 +26,7 @@
 
 ## Verification
 
+- Vercel build fix: the API build generates Prisma Client before TypeScript compilation, covering clean installs where dependency lifecycle scripts are skipped. Local `npm.cmd run build`, `npm.cmd run typecheck`, `npm.cmd run lint`, and `npm.cmd run test` passed (24 tests).
 - Homepage card and carousel refinement: `npm.cmd run typecheck:web`, `npm.cmd run lint:web`, `npm.cmd run test:web` (4 passing tests), and `npm.cmd run build:web` passed. Server-rendered card tests emit React Router `useLayoutEffect` warnings; Vite emits existing dependency-level `use client` warnings.
 - `npm install` completed and generated `package-lock.json`.
 - `npm run typecheck` passed.
